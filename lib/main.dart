@@ -43,8 +43,13 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+
   // List of inventory items
   List<InventoryItem> inventoryList = [];
+
+  // Search/filter
+  String searchQuery = "";
+  final TextEditingController searchController = TextEditingController();
 
   // Controllers for input fields
   final TextEditingController nameController = TextEditingController();
@@ -146,6 +151,13 @@ class _HomeScreenState extends State<HomeScreen> {
   // ==========================
   @override
   Widget build(BuildContext context) {
+    // Filtered list based on search
+    List<InventoryItem> filteredList = inventoryList.where((item) {
+      final query = searchQuery.toLowerCase();
+      return item.name.toLowerCase().contains(query) ||
+          item.category.toLowerCase().contains(query);
+    }).toList();
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -158,49 +170,75 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Container(
         margin: EdgeInsets.all(10),
-        child: ListView.builder(
-          itemCount: inventoryList.length,
-          itemBuilder: (context, index) {
-            final item = inventoryList[index];
-            return Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+        child: Column(
+          children: [
+            // Search bar
+            TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                labelText: "Search by name or category",
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
               ),
-              color: Colors.green,
-              child: ListTile(
-                contentPadding: EdgeInsets.all(15),
-                title: Text(
-                  item.name,
-                  style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Qty: ${item.quantity}",
-                        style: TextStyle(color: Colors.white70)),
-                    Text("Category: ${item.category}",
-                        style: TextStyle(color: Colors.white70)),
-                  ],
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      onPressed: () => showItemDialog(index: index),
-                      icon: Icon(Icons.edit, color: Colors.white),
+              onChanged: (value) {
+                setState(() {
+                  searchQuery = value;
+                });
+              },
+            ),
+            SizedBox(height: 10),
+            // Item list
+            Expanded(
+              child: filteredList.isEmpty
+                  ? Center(child: Text("No items found."))
+                  : ListView.builder(
+                      itemCount: filteredList.length,
+                      itemBuilder: (context, index) {
+                        final item = filteredList[index];
+                        // Find the actual index in inventoryList for edit/delete
+                        final actualIndex = inventoryList.indexOf(item);
+                        return Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          color: Colors.green,
+                          child: ListTile(
+                            contentPadding: EdgeInsets.all(15),
+                            title: Text(
+                              item.name,
+                              style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("Qty: ${item.quantity}",
+                                    style: TextStyle(color: Colors.white70)),
+                                Text("Category: ${item.category}",
+                                    style: TextStyle(color: Colors.white70)),
+                              ],
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  onPressed: () => showItemDialog(index: actualIndex),
+                                  icon: Icon(Icons.edit, color: Colors.white),
+                                ),
+                                IconButton(
+                                  onPressed: () => deleteItem(actualIndex),
+                                  icon: Icon(Icons.delete, color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                    IconButton(
-                      onPressed: () => deleteItem(index),
-                      icon: Icon(Icons.delete, color: Colors.white),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
+            ),
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
