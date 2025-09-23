@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/inventory_item.dart';
+import 'package:csv/csv.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -9,6 +12,35 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // Export inventory to CSV and save locally
+  Future<void> exportToCSV() async {
+    List<List<dynamic>> rows = [];
+    // Header
+    rows.add(["Name", "Quantity", "Category"]);
+    // Data
+    for (var item in inventoryList) {
+      rows.add([
+        item.name,
+        item.quantity,
+        item.category,
+      ]);
+    }
+    String csv = const ListToCsvConverter().convert(rows);
+
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final path = '${directory.path}/inventory_export_${DateTime.now().millisecondsSinceEpoch}.csv';
+      final file = File(path);
+      await file.writeAsString(csv);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('CSV saved to $path')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save CSV: $e')),
+      );
+    }
+  }
   List<InventoryItem> inventoryList = [];
   String searchQuery = "";
   final TextEditingController searchController = TextEditingController();
@@ -206,6 +238,13 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.download, color: Colors.white),
+            tooltip: "Export to CSV",
+            onPressed: exportToCSV,
+          ),
+        ],
       ),
       body: Container(
         margin: EdgeInsets.all(10),
