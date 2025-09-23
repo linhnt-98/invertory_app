@@ -3,6 +3,7 @@ import '../models/inventory_item.dart';
 import 'package:csv/csv.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,7 +13,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Export inventory to CSV and save locally
+  // Export inventory to CSV and let user choose save location
   Future<void> exportToCSV() async {
     List<List<dynamic>> rows = [];
     // Header
@@ -28,13 +29,23 @@ class _HomeScreenState extends State<HomeScreen> {
     String csv = const ListToCsvConverter().convert(rows);
 
     try {
-      final directory = await getApplicationDocumentsDirectory();
-      final path = '${directory.path}/inventory_export_${DateTime.now().millisecondsSinceEpoch}.csv';
-      final file = File(path);
-      await file.writeAsString(csv);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('CSV saved to $path')),
+      String? outputFile = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save Inventory CSV',
+        fileName: 'inventory_export_${DateTime.now().millisecondsSinceEpoch}.csv',
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
       );
+      if (outputFile != null) {
+        final file = File(outputFile);
+        await file.writeAsString(csv);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('CSV saved to $outputFile')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Save cancelled.')),
+        );
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to save CSV: $e')),
